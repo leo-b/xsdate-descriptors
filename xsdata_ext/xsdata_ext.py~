@@ -1,0 +1,35 @@
+"""custom extensions to xsdata"""
+
+from xsdata.models.datatype import XmlDate, XmlDateTime
+import datetime
+
+class AttrDescriptor:
+    def __init__(self, *, default=None):
+        self._default = default
+    def __set_name__(self, owner, name):
+        self._name = '_' + name
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self._default
+        return getattr(obj, self._name, self._default)
+
+class XmlDateDescriptor(AttrDescriptor):
+    def __set__(self, obj, value):
+        if isinstance(value, str):
+            setattr(obj, self._name, XmlDate.from_string(value))
+        elif isinstance(value, datetime.datetime):
+            setattr(obj, self._name, XmlDate.from_datetime(value))
+        elif isinstance(value, datetime.date):
+            setattr(obj, self._name, XmlDate.from_date(value))
+        else:
+            setattr(obj, self._name, value)
+
+class XmlDateTimeDescriptor(AttrDescriptor):
+    def __set__(self, obj, value):
+        if isinstance(value, str):
+            setattr(obj, self._name, XmlDateTime.from_string(value))
+        elif isinstance(value, datetime.datetime):
+            setattr(obj, self._name, XmlDateTime.from_datetime(value))
+        else:
+            setattr(obj, self._name, value)
+

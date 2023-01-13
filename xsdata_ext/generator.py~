@@ -1,0 +1,62 @@
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+
+from xsdata.codegen.models import Attr
+from xsdata.formats.dataclass.filters import Filters
+from xsdata.formats.dataclass.generator import DataclassGenerator
+from xsdata.models.config import GeneratorConfig
+from xsdata.models.config import OutputFormat
+from xsdata.codegen.models import AttrType
+from xsdata.utils.objects import literal_value
+
+
+class DvuGenerator(DataclassGenerator):
+    """Python DVU code generator."""
+
+    @classmethod
+    def init_filters(cls, config: GeneratorConfig) -> Filters:
+        filters = DvuFilters(config)
+        filters.import_patterns["xsdata_dvu.xsdata_ext"] = {
+            "XmlDateDescriptor": ["=XmlDateDescriptor("],
+        }
+        return filters
+
+class DvuFilters(Filters):
+    #FACTORY_KEY = "factoryurxn"
+    #DEFAULT_KEY = "defaulturxn"
+
+    @classmethod
+    def build_class_annotation(cls, format: OutputFormat) -> str:
+        result = super().build_class_annotation(format)
+        # result = result.replace("unsafe_hash=", "hash=")
+        # result = result.replace("@dataclass", "@attr.s")
+        return result
+
+    def field_default_value(self, attr: Attr, ns_map: Optional[Dict] = None) -> Any:
+        result = super().field_default_value(attr=attr, ns_map=ns_map)
+        type_names = { self.type_name(x) for x in attr.types }
+        assert len(type_names) == 1
+        if 'XmlDate' in type_names:
+            result = f"XmlDateDescriptor(default={literal_value(result)})"
+        #if attr.name == 'geburtsdatum':
+        #    import code2; code2.interact()
+        return result
+            
+    def field_definition(
+        self,
+        attr: Attr,
+        ns_map: Dict,
+        parent_namespace: Optional[str],
+        parents: List[str],
+    ) -> str:
+        result = super().field_definition(attr, ns_map, parent_namespace, parents)
+        return result
+        # .replace("field(", "attr.ib(")
+
+    def type_name(self, attr_type: AttrType) -> str:
+        """Return native python type name or apply class name conventions."""
+        from xsdata.logger import logger
+        # logger.info("LEO: datatype: {}, alias: {}, name: {}".format(attr_type.datatype, attr_type.alias, attr_type.name))
+        return super().type_name(attr_type)
